@@ -108,7 +108,7 @@ Open `main.py` and set the flags for the experiments you want:
 
 Shared settings such as `NOISE_SCALE`, `SIMULATIONS`, and `SEED` are also defined at the top of `main.py`. Results are written under `Results/` (created automatically), organized into `Ablation/`, `Reduction/`, `SMR Comparison/`, and `RealWorld/` subfolders with performance tables (`Performance.xlsx`), detected/ground-truth workbooks, and, when enabled, per-simulation trace CSVs.
 
-### Using the detector directly (example.py)
+### Using the detector directly (`example.py`)
 
 ```python
 import numpy as np
