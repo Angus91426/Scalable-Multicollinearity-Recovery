@@ -41,7 +41,7 @@ Experiment drivers that call the core methods and write results:
 
 - `run_ablation_simulation(...)` — synthetic ablation study. Runs Methods A–E, SMR (Corr and Eigen variants), and the Bertsimas/Original baseline on generated datasets, then runs paired Wilcoxon / t-tests. The seven configurations isolate one component at a time (screen, inequality inspection, irreducibility inspection, fast-path recovery).
 - `run_reduction_simulation(...)` — compares the eigenvector screen against the correlation screen at several z thresholds.
-- `run_SMR_comparison` — runs SMR-Corr and SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
+- `run_SMR_comparison` — runs SMR-Corr and SMR-Eigvec across minimum-coefficient levels 0.1–1.0.
 - `run_realworld_detection(...)` — runs SMR and/or Bertsimas detection on the pre-processed real-world datasets.
 
 #### Ablation Study
@@ -105,7 +105,6 @@ Open `main.py` and set the flags for the experiments you want:
 - `RUN_REDUCTION` — eigenvector vs. correlation screen comparison.
 - `RUN_SMR_COMPARISON` — SMR-Corr vs. SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
 - `RUN_REALWORLD` — detection on the datasets in `Data/`.
-- `RUN_COEF_SWEEP` — SMR-Corr vs. SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
 
 Shared settings such as `NOISE_SCALE`, `SIMULATIONS`, and `SEED` are also defined at the top of `main.py`. Results are written under `Results/` (created automatically), organized into `Ablation/`, `Reduction/`, `SMR Comparison/`, and `RealWorld/` subfolders with performance tables (`Performance.xlsx`), detected/ground-truth workbooks, and, when enabled, per-simulation trace CSVs.
 
