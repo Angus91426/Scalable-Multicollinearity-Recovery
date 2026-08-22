@@ -198,7 +198,7 @@ def _run_significance_test( df: pd.DataFrame, output_dir: str, baseline: str, me
 # --------------------------------------------------------------------------- #
 # 1. Synthetic detection ablation study + significance test
 # --------------------------------------------------------------------------- #
-def run_detection_simulation(
+def run_ablation_simulation(
     BASE_DIR: str,
     n: int, p: int, MR: list,
     noise_scale: float = 0.01,
@@ -258,7 +258,7 @@ def run_detection_simulation(
     """
     csv_id = csv_id or time.strftime( '%Y%m%d-%H%M%S', time.localtime() )
     
-    OUTPUT_DIR = os.path.join( BASE_DIR, 'Detection', f'p_{p}_{csv_id}' )
+    OUTPUT_DIR = os.path.join( BASE_DIR, 'Ablation', f'p_{p}_{csv_id}' )
     os.makedirs( OUTPUT_DIR, exist_ok = True )
     log_path = 'gurobi_live.log'
     
@@ -513,9 +513,168 @@ def run_reduction_simulation(
     print( f'Reduction results written to {OUTPUT_DIR}' )
     return OUTPUT_DIR
 
+# --------------------------------------------------------------------------- #
+# 3. SMR-Corr vs. SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
+# --------------------------------------------------------------------------- #
+def run_SMR_comparison(
+    BASE_DIR: str,
+    n: int, p: int, MR: list,
+    noise_scale: float = 0.01,
+    coef_mins = ( 0.0, ),
+    simulations: int = 10,
+    seed: int = 911122,
+    outlier_threshold: int = 5,
+    norm_threshold: float = 10 ** ( -2 ),
+    alpha: float = 0.5,
+    total_time_limit: int = None,
+    per_solve_time_limit: int = None,
+    save_relationship: bool = True,
+    save_trace: bool = False,
+    csv_id: str = None
+):
+    """Run the multicollinearity-detection ablation study, then paired tests.
+    
+    Parameters
+    ----------
+    BASE_DIR : str
+        Root directory for all outputs (created if missing).
+    n, p : int
+        Design-matrix sample size and feature count.
+    MR : list
+        Relationship counts [MR2, MR3, MR4, MR8, MR10, MR15, MR20].
+    noise_scale : float
+        Std. of the additive Gaussian noise in Simulation_Data.
+    coef_mins : iterable of float
+        Minimum-|coefficient| levels; one workbook is produced per level.
+    simulations : int
+        Number of random datasets per (coef_min) setting.
+    seed : int
+        Seed for the per-setting data-seed generator (reproducibility).
+    outlier_threshold : int
+        z-score threshold for the correlation screen (Methods A / E / En-Corr).
+    norm_threshold, alpha : float
+        Inequality norm threshold and eigenvalue-cutoff scale for detection.
+    total_time_limit, per_solve_time_limit : int or None
+        Overall and per-solve Gurobi time budgets (seconds).
+    save_relationship : bool
+        Also write the ground-truth and detected-relationship workbooks.
+    save_trace : bool
+        Write a separate trace CSV per method and simulation (in addition to the
+        consolidated detected workbook). Off by default.
+    csv_id : str or None
+        Run tag for the output folder; a timestamp is generated if None.
+    """
+    csv_id = csv_id or time.strftime( '%Y%m%d-%H%M%S', time.localtime() )
+    
+    OUTPUT_DIR = os.path.join( BASE_DIR, 'SMR Comparison', f'p_{p}_{csv_id}' )
+    os.makedirs( OUTPUT_DIR, exist_ok = True )
+    log_path = 'gurobi_live.log'
+    
+    rng = np.random.default_rng( seed = seed )
+    
+    METHODS = [
+        { 'label': 'SMR-Corr', 'enabled': True, 'flags': {
+            'reduction': True,  'reduction_method': 'corr', 'outlier_threshold': outlier_threshold,
+            'Inequality_Inspection': True,  'Irreducibility_Inspection': True,  'fastpath': True } },
+        
+        { 'label': 'SMR-Eigen', 'enabled': True, 'flags': {
+            'reduction': True,  'reduction_method': 'eigvec',
+            'Inequality_Inspection': True,  'Irreducibility_Inspection': True,  'fastpath': True } },
+    ]
+    
+    # Truncate the live log file so we don't accumulate across runs.
+    open( log_path, 'w' ).close()
+    _write_log_banner( log_path, f'Simulation start | n={n} p={p} MR={MR} coef_mins={list( coef_mins )} simulations={simulations}' )
+    
+    performance_ = { 'Coef_min': [], 'Simulation_id': [], 'Method': [], 'MACC': [], 'MFPR': [], 'Time': [] }
+    
+    def _record_performance( coef_min, data_id, label, ACC, FPR, elapsed ):
+        performance_['Coef_min'].append( coef_min )
+        performance_['Simulation_id'].append( data_id + 1 )
+        performance_['Method'].append( label )
+        performance_['MACC'].append( ACC )
+        performance_['MFPR'].append( FPR )
+        performance_['Time'].append( round( elapsed, 2 ) )
+    
+    for coef_min in coef_mins:
+        data_seeds = rng.integers( low = 0, high = 10000, size = simulations )
+        
+        # One workbook per coef_min; sheets accumulate over the simulations loop.
+        wb = Workbook(); wb.remove( wb.active )
+        detected_wb = Workbook(); detected_wb.remove( detected_wb.active )
+        
+        for data_id, data_seed in enumerate( data_seeds ):
+            print( '=.' * 50 )
+            print( f'Coef_min: {coef_min}, Data: {data_id + 1} / {simulations}' )
+            
+            # Generate simulation dataset.
+            original_col, coef_dict, X, feature_col = SMR.Simulation_Data( n, p, MR, noise_scale, data_seed, coef_min = coef_min )
+            
+            # Show the true collinearity relationships.
+            true_feat = []
+            for key, value in original_col.items():
+                print( f'{key}: {value}' )
+                for feat_ in value:
+                    true_feat += feat_
+            print( f'Total number of features involved in multicollinearity: {len( true_feat )}' )
+            
+            if save_relationship:
+                _build_simulation_sheet( workbook = wb, sheet_name = f'Sim_{data_id + 1}', MR = MR,
+                                            original_col = original_col, coef_dict = coef_dict, feature_col = feature_col )
+            
+            # Detection events for THIS simulation, all methods stacked.
+            detected_rows = []
+            
+            for method in METHODS:
+                if not method['enabled']:
+                    continue
+                label, flags = method['label'], method['flags']
+                print( '{:-^100}'.format( label ) )
+                log_tag = f'sim {data_id + 1}/{simulations} | coef_min={coef_min} | {label}'
+                trace_path = os.path.join( OUTPUT_DIR, f'Coef_min_{coef_min}_Sim_{data_id + 1}_{label}_Trace.csv' ) if save_trace else None
+                
+                # Fresh trace=[] per instantiation so each method records only its own events.
+                multi_ = SMR.Multicollinear( **flags, norm_threshold = norm_threshold, alpha = alpha,
+                                                total_time_limit = total_time_limit, per_solve_time_limit = per_solve_time_limit,
+                                                log_file = log_path, log_tag = log_tag, trace = [], trace_file = trace_path )
+                start = time.time()
+                z_pos = multi_.Ablation_Detection( X = X, col_names = feature_col )
+                end = time.time()
+                
+                ACC, FPR = multi_.Multicollinear_score( z_pos, original_col )
+                print( f'ACC: {round( ACC, 2 )}, MFPR: {round( FPR, 2 )}, execution time: {round( end - start, 2 )}' )
+                _record_performance( coef_min, data_id, label, ACC, FPR, end - start )
+                
+                # Norm / Coefficient are blank for methods without inequality inspection.
+                # Gap / Time are the MIPGap and solver time of each Minimum_Support solve.
+                show_norm = flags['Inequality_Inspection']
+                for entry in multi_.trace:
+                    detected_rows.append( {
+                        'Method': label,
+                        'Status': entry['status'],
+                        'Detected_Relationship': _support_to_feature_str( entry['support'], feature_col ),
+                        'Norm': entry['norm'] if show_norm else None,
+                        'Coefficient': _coef_to_str( entry['A_opt'] ) if show_norm else None,
+                        'Gap': entry['gap'],
+                        'Time': entry['time'],
+                    } )
+            
+            # Persist the performance table incrementally.
+            pd.DataFrame( performance_ ).to_excel( os.path.join( OUTPUT_DIR, 'Performance.xlsx' ), index = False )
+            
+            if save_relationship:
+                _build_detected_sheet( workbook = detected_wb, sheet_name = f'Sim_{data_id + 1}', rows = detected_rows )
+        
+        if save_relationship:
+            wb.save( os.path.join( OUTPUT_DIR, f'Coef_min_{coef_min}_Ground_Truth.xlsx' ) )
+            detected_wb.save( os.path.join( OUTPUT_DIR, f'Coef_min_{coef_min}_Detected.xlsx' ) )
+            print( f'Saved ground-truth and detected workbooks for coef_min={coef_min}' )
+    
+    print( f'Detection results written to {OUTPUT_DIR}' )
+    return OUTPUT_DIR
 
 # --------------------------------------------------------------------------- #
-# 3. Real-world detection (pre-processed OpenML / UCI datasets)
+# 4. Real-world detection (pre-processed OpenML / UCI datasets)
 # --------------------------------------------------------------------------- #
 def _discover_processed_datasets( data_dir: str ) -> list:
     """Return the base names of every ``*_Processed.csv`` file in ``data_dir``."""
