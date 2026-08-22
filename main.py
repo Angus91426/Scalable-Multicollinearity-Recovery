@@ -27,23 +27,26 @@ DATA_DIR = os.path.join( os.path.dirname( os.path.abspath( __file__ ) ), 'Data' 
 # Data settings (Table 2): [MR2, MR3, MR4, MR8, MR10, MR15, MR20]
 # --------------------------------------------------------------------------- #
 SCALES = {
-    'small': { 'n': 2000,  'p': 1000,  'MR': [0, 5, 3, 1, 1, 0, 0], 'outlier_threshold': 4 },
-    'large': { 'n': 20000, 'p': 10000, 'MR': [0, 3, 3, 1, 1, 1, 1], 'outlier_threshold': 5 },
+    'small': {  'n': 2000,  'p': 1000,  'MR': [0, 5, 3, 1, 1, 0, 0], 'outlier_threshold': 4, \
+                'run_A': True, 'run_B': True, 'run_C': False, 'run_D': False, 'run_E': False, \
+                'run_SMR_Corr': True, 'run_SMR_Eigen': True, 'run_Bertsimas': True },
+    'large': {  'n': 20000, 'p': 10000, 'MR': [0, 3, 3, 1, 1, 1, 1], 'outlier_threshold': 5, \
+                'run_A': True, 'run_B': True, 'run_C': True, 'run_D': True, 'run_E': True, \
+                'run_SMR_Corr': True, 'run_SMR_Eigen': True, 'run_Bertsimas': True },
 }
 
 # --------------------------------------------------------------------------- #
 # What to run
 # --------------------------------------------------------------------------- #
 RUN_SCALES     = ['small', 'large']   # which data scales to run
-RUN_DETECTION  = False
-RUN_REDUCTION  = False
-RUN_REALWORLD  = False
+RUN_ABLATION   = True
+RUN_REDUCTION  = True
+RUN_SMR_COMPARISON   = True
+RUN_REALWORLD  = True
 
-# Coefficient-sweep experiment: Enhanced Corr vs Enhanced Eigvec across
-# coef_min = 0.0..1.0 on the large-scale dataset.
-RUN_COEF_SWEEP   = False
-COEF_SWEEP_SCALE = 'large'
-COEF_SWEEP_MINS  = [round( 0.1 * i, 1 ) for i in range( 11 )]   # 0.0, 0.1, ..., 1.0
+# Coefficient-sweep experiment: SMR Corr vs SMR Eigvec across coef_min = 0.0..1.0 on the large-scale dataset.
+COEF_SWEEP_SCALE     = 'large'
+COEF_SWEEP_MINS      = [round( 0.1 * i, 1 ) for i in range( 11 )]   # 0.0, 0.1, ..., 1.0
 
 # Shared simulation settings.
 NOISE_SCALE = 0.01
@@ -62,8 +65,8 @@ if __name__ == '__main__':
         print( f'\n########## {scale}-scale | n={n} p={p} MR={MR} outlier_threshold={outlier_threshold} ##########' )
         
         # ---- 1. Synthetic detection ablation study + significance test ---- #
-        if RUN_DETECTION:
-            Sim.run_detection_simulation(
+        if RUN_ABLATION:
+            Sim.run_ablation_simulation(
                 BASE_DIR = BASE_DIR,
                 n = n, p = p, MR = MR,
                 noise_scale = NOISE_SCALE,
@@ -71,8 +74,8 @@ if __name__ == '__main__':
                 simulations = SIMULATIONS,
                 seed = SEED,
                 outlier_threshold = outlier_threshold,
-                run_A = False, run_B = False, run_C = False, run_D = False, run_E = False,
-                run_SMR_Corr = False, run_SMR_Eigen = True, run_Bertsimas = False,
+                run_A = cfg['run_A'], run_B = cfg['run_B'], run_C = cfg['run_C'], run_D = cfg['run_D'], run_E = cfg['run_E'],
+                run_SMR_Corr = cfg['run_SMR_Corr'], run_SMR_Eigen = cfg['run_SMR_Eigen'], run_Bertsimas = cfg['run_Bertsimas'],
                 save_trace = SAVE_TRACE,
                 run_significance = False,
                 significance_baseline = 'Original',
@@ -90,10 +93,10 @@ if __name__ == '__main__':
             )
     
     # ---- Coefficient sweep: SMR-Corr vs SMR-Eigvec, coef_min 0.0..1.0 ---- #
-    if RUN_COEF_SWEEP:
+    if RUN_SMR_COMPARISON:
         cfg = SCALES[COEF_SWEEP_SCALE]
         print( f'\n########## coef-sweep | {COEF_SWEEP_SCALE}-scale | coef_min={COEF_SWEEP_MINS} ##########' )
-        Sim.run_detection_simulation(
+        Sim.run_SMR_comparison(
             BASE_DIR = BASE_DIR,
             n = cfg['n'], p = cfg['p'], MR = cfg['MR'],
             noise_scale = NOISE_SCALE,
@@ -101,10 +104,7 @@ if __name__ == '__main__':
             simulations = SIMULATIONS,
             seed = SEED,
             outlier_threshold = cfg['outlier_threshold'],
-            run_A = False, run_B = False, run_C = False, run_D = False, run_E = False,
-            run_SMR_Corr = True, run_SMR_Eigen = True, run_Bertsimas = False,
             save_trace = SAVE_TRACE,
-            run_significance = False,
             csv_id = 'CoefSweep',
         )
     
