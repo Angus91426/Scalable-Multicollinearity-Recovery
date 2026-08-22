@@ -22,6 +22,7 @@ At 10,000 predictors, SMR maintains 100% detection accuracy while reducing the f
 ├── Scalable_Multicollinearity_Recovery.py     # Core methodology (the Multicollinear class + data generation)
 ├── Simulation.py                              # Experiment drivers used in the manuscript
 ├── main.py                                    # Entry point / configuration for reproducing experiments
+├── example.py                                 # Example code of using the SMR method
 ├── Data/                                      # Real-world datasets (_Raw and _Processed CSVs)
 └── Results/                                   # Output directory (will be created automatically after running the simulation)
 ```
@@ -38,8 +39,9 @@ Core implementation. Key components:
 
 Experiment drivers that call the core methods and write results:
 
-- `run_detection_simulation(...)` — synthetic ablation study. Runs Methods A–E, SMR (Corr and Eigen variants), and the Bertsimas/Original baseline on generated datasets, then runs paired Wilcoxon / t-tests. The seven configurations isolate one component at a time (screen, inequality inspection, irreducibility inspection, fast-path recovery).
+- `run_ablation_simulation(...)` — synthetic ablation study. Runs Methods A–E, SMR (Corr and Eigen variants), and the Bertsimas/Original baseline on generated datasets, then runs paired Wilcoxon / t-tests. The seven configurations isolate one component at a time (screen, inequality inspection, irreducibility inspection, fast-path recovery).
 - `run_reduction_simulation(...)` — compares the eigenvector screen against the correlation screen at several z thresholds.
+- `run_SMR_comparison` — runs SMR-Corr and SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
 - `run_realworld_detection(...)` — runs SMR and/or Bertsimas detection on the pre-processed real-world datasets.
 
 #### Ablation Study
@@ -99,14 +101,15 @@ python main.py
 Open `main.py` and set the flags for the experiments you want:
 
 - `RUN_SCALES` — which data scales (`'small'`, `'large'`) to run.
-- `RUN_DETECTION` — synthetic ablation study plus significance tests.
+- `RUN_ABLATION` — synthetic ablation study plus significance tests.
 - `RUN_REDUCTION` — eigenvector vs. correlation screen comparison.
+- `RUN_SMR_COMPARISON` — SMR-Corr vs. SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
 - `RUN_REALWORLD` — detection on the datasets in `Data/`.
 - `RUN_COEF_SWEEP` — SMR-Corr vs. SMR-Eigvec across minimum-coefficient levels 0.0–1.0.
 
-Shared settings such as `NOISE_SCALE`, `SIMULATIONS`, and `SEED` are also defined at the top of `main.py`. Results are written under `Results/` (created automatically), organized into `Detection/`, `Reduction/`, and `RealWorld/` subfolders with performance tables (`Performance.xlsx`), detected/ground-truth workbooks, and, when enabled, per-simulation trace CSVs.
+Shared settings such as `NOISE_SCALE`, `SIMULATIONS`, and `SEED` are also defined at the top of `main.py`. Results are written under `Results/` (created automatically), organized into `Ablation/`, `Reduction/`, `SMR Comparison/`, and `RealWorld/` subfolders with performance tables (`Performance.xlsx`), detected/ground-truth workbooks, and, when enabled, per-simulation trace CSVs.
 
-### Using the detector directly
+### Using the detector directly (example.py)
 
 ```python
 import numpy as np
