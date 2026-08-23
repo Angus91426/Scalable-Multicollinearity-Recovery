@@ -38,11 +38,11 @@ SCALES = {
 # --------------------------------------------------------------------------- #
 # What to run
 # --------------------------------------------------------------------------- #
-RUN_SCALES     = ['small', 'large']   # which data scales to run
-RUN_ABLATION   = True
-RUN_REDUCTION  = True
+RUN_SCALES           = ['small', 'large']   # which data scales to run
+RUN_ABLATION         = True
+RUN_REDUCTION        = True
 RUN_SMR_COMPARISON   = True
-RUN_REALWORLD  = True
+RUN_REALWORLD        = True
 
 # Coefficient-sweep experiment: SMR Corr vs SMR Eigvec across coef_min = 0.0..1.0 on the large-scale dataset.
 COEF_SWEEP_SCALE     = 'large'
