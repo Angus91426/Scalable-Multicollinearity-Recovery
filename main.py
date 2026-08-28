@@ -31,18 +31,18 @@ SCALES = {
                 'run_A': True, 'run_B': True, 'run_C': False, 'run_D': False, 'run_E': False, \
                 'run_SMR_Corr': True, 'run_SMR_Eigen': True, 'run_Bertsimas': True },
     'large': {  'n': 20000, 'p': 10000, 'MR': [0, 3, 3, 1, 1, 1, 1], 'outlier_threshold': 5, \
-                'run_A': True, 'run_B': True, 'run_C': True, 'run_D': True, 'run_E': True, \
+                'run_A': False, 'run_B': False, 'run_C': False, 'run_D': False, 'run_E': False, \
                 'run_SMR_Corr': True, 'run_SMR_Eigen': True, 'run_Bertsimas': True },
 }
 
 # --------------------------------------------------------------------------- #
 # What to run
 # --------------------------------------------------------------------------- #
-RUN_SCALES           = ['small', 'large']   # which data scales to run
-RUN_ABLATION         = True
-RUN_REDUCTION        = True
+RUN_SCALES     = ['small', 'large']   # which data scales to run
+RUN_ABLATION   = True
+RUN_REDUCTION  = True
 RUN_SMR_COMPARISON   = True
-RUN_REALWORLD        = True
+RUN_REALWORLD  = True
 
 # Coefficient-sweep experiment: SMR Corr vs SMR Eigvec across coef_min = 0.0..1.0 on the large-scale dataset.
 COEF_SWEEP_SCALE     = 'large'
