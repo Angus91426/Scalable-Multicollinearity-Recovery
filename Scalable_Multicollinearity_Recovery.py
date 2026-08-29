@@ -753,7 +753,7 @@ class Multicollinear:
         
         return z_pos_accepted
     
-    def SMSR_Main( self, X: np.array, col_names: np.ndarray ):
+    def SMR_Main( self, X: np.array, col_names: np.ndarray ):
         return self.Ablation_Detection( X = X, col_names = col_names )
     
     def Bertsimas_Minimum_Support( self, V: np.array, delta: float = 10 ** ( -4 ), time: float = 6000, super_exclusions: list = [] ):
