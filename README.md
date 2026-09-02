@@ -87,6 +87,7 @@ Real-world datasets used in `run_realworld_detection`. Each dataset is stored as
 - `numpy`, `pandas`, `scipy`, `openpyxl`, `rich`
 
 ```bash
+conda create -n SMR python=3.11
 pip install -r requirements.txt
 ```
 
