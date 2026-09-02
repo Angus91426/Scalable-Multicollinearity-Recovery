@@ -88,6 +88,7 @@ Real-world datasets used in `run_realworld_detection`. Each dataset is stored as
 
 ```bash
 conda create -n SMR python=3.11
+conda activate SMR
 pip install -r requirements.txt
 ```
 
