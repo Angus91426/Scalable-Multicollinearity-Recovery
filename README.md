@@ -87,7 +87,7 @@ Real-world datasets used in `run_realworld_detection`. Each dataset is stored as
 - `numpy`, `pandas`, `scipy`, `openpyxl`, `rich`
 
 ```bash
-pip install numpy pandas scipy openpyxl rich gurobipy
+pip install -r requirements.txt
 ```
 
 ## Usage
