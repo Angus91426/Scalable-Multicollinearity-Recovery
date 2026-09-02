@@ -1,0 +1,9 @@
+matplotlib
+numpy
+pandas
+rich
+scikit-learn
+seaborn
+tqdm
+openpyxl
+gurobipy
